@@ -1,0 +1,10 @@
+# Node
+node_modules/
+.env
+
+# Vue
+dist/
+build/
+
+# System
+.DS_Store
