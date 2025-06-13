@@ -77,18 +77,34 @@ const spin = () => {
 
   const total = codes.value.length * itemH.value;
   const BOX_C = boxH / 2 - itemH.value / 2;
-
-  const steps = LOOPS * codes.value.length + idx;
-  const max = 22000;
-  for (let k = 0; k <= steps; k++) {
-    const p = k / steps;
-    const ease = 1 - (1 - p) * (1 - p);
-    const t = ease * max;
-    setTimeout(() => tickSound.play(), t);
-  }
   const target = -(LOOPS * total + idx * itemH.value) + BOX_C;
+
   reel.value.style.transition = "transform 22s cubic-bezier(.1,.9,.3,1)";
+  const offsetStart = offset.value;
   offset.value = target;
+
+  let lastStep = Math.floor(offsetStart / itemH.value);
+  let start = null;
+
+  const trackTick = (timestamp) => {
+    if (!start) start = timestamp;
+    const progress = timestamp - start;
+    const t = Math.min(progress / 22000, 1);
+    const ease = 1 - Math.pow(1 - t, 2);
+    const currentOffset = offsetStart + (target - offsetStart) * ease;
+    const currentStep = Math.floor(currentOffset / itemH.value);
+
+    if (currentStep !== lastStep) {
+      lastStep = currentStep;
+      tickSound.play();
+    }
+
+    if (progress < 22000) {
+      requestAnimationFrame(trackTick);
+    }
+  };
+
+  requestAnimationFrame(trackTick);
 };
 
 const fmt = (d) => d.toISOString().slice(0, 19).replace("T", " ");
