@@ -5,6 +5,7 @@
         ref="reel"
         class="reel"
         :style="{ transform: `translateY(${offset}px)` }"
+        @transitionend="onStop"
       >
         <li
           v-for="(c, i) in repeated"
@@ -34,20 +35,24 @@ import axios from "axios";
 
 const codes = ref([]);
 const offset = ref(0);
-const state = ref("idle");
+const state = ref("idle"); 
 const itemH = ref(0);
 const reel = ref(null);
 const colors = ["#ffeb3b", "#00e5ff", "#ff4081", "#76ff03", "#ff5722"];
+const LOOPS = 6; 
+let boxH    = 0;
+let windowH = 0;
 
-const getCodes = () =>
+const fetchCodes = () =>
   axios
     .get("http://localhost:4000/participants")
-    .then((r) => (codes.value = r.data));
-const repeated = computed(() => [
-  ...codes.value,
-  ...codes.value,
-  ...codes.value,
-]);
+    .then((res) => (codes.value = res.data));
+
+const repeated = computed(() => {
+  const arr = [];
+  for (let i = 0; i < LOOPS + 2; i++) arr.push(...codes.value);
+  return arr;
+});
 
 let idleTimer;
 const startIdle = () => {
@@ -57,47 +62,53 @@ const startIdle = () => {
 };
 const stopIdle = () => clearInterval(idleTimer);
 
-const spin = async () => {
+const spin = () => {
   if (state.value !== "idle") return;
   state.value = "running";
   stopIdle();
 
   const idx = Math.floor(Math.random() * codes.value.length);
-  const loops = 6;
-  const total = codes.value.length * itemH.value;
-  const target =
-    -(loops * total + idx * itemH.value) + (windowH / 2 - itemH.value / 2);
+  reel.value._winner = codes.value[idx];
 
+  const total = codes.value.length * itemH.value; 
+  const BOX_C = boxH / 2 - itemH.value / 2;
+
+  const target = -(LOOPS * total + idx * itemH.value) + BOX_C;
   reel.value.style.transition = "transform 22s cubic-bezier(.1,.9,.3,1)";
   offset.value = target;
-  reel.value._winner = codes.value[idx];
 };
+
+const fmt = (d) => d.toISOString().slice(0, 19).replace("T", " ");
 
 const onStop = async () => {
   if (state.value !== "running") return;
   state.value = "winner";
 
+  const center   = boxH/2 - itemH.value/2;
+  const idxFinal = Math.round((center - offset.value) / itemH.value) % codes.value.length;
+  const winner   = codes.value[(idxFinal + codes.value.length) % codes.value.length];
+
   await axios.post("http://localhost:4000/draw-result", {
-    winner: reel.value._winner,
-    draw_time: new Date().toISOString(),
+    winner,
+    draw_time: fmt(new Date())
   });
 
   setTimeout(() => {
     reel.value.style.transition = "";
     state.value = "idle";
     startIdle();
-  }, 30000);
+  }, 30_000);
 };
 
-let windowH;
 onMounted(async () => {
-  await getCodes();
+  await fetchCodes();
   nextTick(() => {
     itemH.value = reel.value.querySelector(".item").offsetHeight;
     windowH = document.querySelector(".window").offsetHeight;
+    boxH        = document.querySelector(".reel-box").clientHeight;
     startIdle();
   });
-  setInterval(getCodes, 30000);
+  setInterval(fetchCodes, 30_000);
 });
 </script>
 
@@ -110,7 +121,6 @@ onMounted(async () => {
   height: 100vh;
   justify-content: center;
 }
-
 .reel-box {
   position: relative;
   width: 240px;
@@ -120,13 +130,11 @@ onMounted(async () => {
   border-radius: 6px;
   box-shadow: 0 0 10px #0005 inset;
 }
-
 .reel {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-
 .item {
   width: 100%;
   height: 60px;
@@ -136,23 +144,6 @@ onMounted(async () => {
   font: bold 32px/1 "Roboto", sans-serif;
   color: #fff;
 }
-
-.color-0 {
-  color: #ffeb3b;
-} /* vàng */
-.color-1 {
-  color: #00e5ff;
-} /* cyan */
-.color-2 {
-  color: #ff4081;
-} /* hồng */
-.color-3 {
-  color: #76ff03;
-} /* xanh lá */
-.color-4 {
-  color: #ff5722;
-} /* cam */
-
 .window {
   position: absolute;
   top: 50%;
