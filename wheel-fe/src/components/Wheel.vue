@@ -17,7 +17,7 @@
         </li>
       </ul>
 
-      <div class="window">
+      <div class="window" :class="{ winner: state === 'winner' }">
         <span class="arrow arrow-left"></span>
         <span class="arrow arrow-right"></span>
       </div>
@@ -32,15 +32,20 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from "vue";
 import axios from "axios";
+import confetti from "canvas-confetti";
+import { Howl } from "howler";
+
+const tickSound = new Howl({ src: ["/sounds/tick.mp3"], volume: 0.5 });
+const winSound = new Howl({ src: ["/sounds/win.mp3"], volume: 1 });
 
 const codes = ref([]);
 const offset = ref(0);
-const state = ref("idle"); 
+const state = ref("idle");
 const itemH = ref(0);
 const reel = ref(null);
 const colors = ["#ffeb3b", "#00e5ff", "#ff4081", "#76ff03", "#ff5722"];
-const LOOPS = 6; 
-let boxH    = 0;
+const LOOPS = 6;
+let boxH = 0;
 let windowH = 0;
 
 const fetchCodes = () =>
@@ -64,15 +69,23 @@ const stopIdle = () => clearInterval(idleTimer);
 
 const spin = () => {
   if (state.value !== "idle") return;
-  state.value = "running";
   stopIdle();
+  state.value = "running";
 
   const idx = Math.floor(Math.random() * codes.value.length);
   reel.value._winner = codes.value[idx];
 
-  const total = codes.value.length * itemH.value; 
+  const total = codes.value.length * itemH.value;
   const BOX_C = boxH / 2 - itemH.value / 2;
 
+  const steps = LOOPS * codes.value.length + idx;
+  const max = 22000;
+  for (let k = 0; k <= steps; k++) {
+    const p = k / steps;
+    const ease = 1 - (1 - p) * (1 - p);
+    const t = ease * max;
+    setTimeout(() => tickSound.play(), t);
+  }
   const target = -(LOOPS * total + idx * itemH.value) + BOX_C;
   reel.value.style.transition = "transform 22s cubic-bezier(.1,.9,.3,1)";
   offset.value = target;
@@ -84,13 +97,25 @@ const onStop = async () => {
   if (state.value !== "running") return;
   state.value = "winner";
 
-  const center   = boxH/2 - itemH.value/2;
-  const idxFinal = Math.round((center - offset.value) / itemH.value) % codes.value.length;
-  const winner   = codes.value[(idxFinal + codes.value.length) % codes.value.length];
+  setTimeout(() => {
+    Howler.stop();
+    winSound.play();
+  }, 100);
+
+  const center = boxH / 2 - itemH.value / 2;
+  const idxFinal =
+    Math.round((center - offset.value) / itemH.value) % codes.value.length;
+  const winner =
+    codes.value[(idxFinal + codes.value.length) % codes.value.length];
+  const end = Date.now() + 1000;
+  (function frame() {
+    confetti({ origin: { y: 0.6 } });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
 
   await axios.post("http://localhost:4000/draw-result", {
     winner,
-    draw_time: fmt(new Date())
+    draw_time: fmt(new Date()),
   });
 
   setTimeout(() => {
@@ -105,7 +130,7 @@ onMounted(async () => {
   nextTick(() => {
     itemH.value = reel.value.querySelector(".item").offsetHeight;
     windowH = document.querySelector(".window").offsetHeight;
-    boxH        = document.querySelector(".reel-box").clientHeight;
+    boxH = document.querySelector(".reel-box").clientHeight;
     startIdle();
   });
   setInterval(fetchCodes, 30_000);
@@ -113,6 +138,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@keyframes flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px #fff;
+  }
+  50% {
+    box-shadow: 0 0 10px 3px #ff0;
+  }
+}
+.window.winner {
+  animation: flash 0.6s infinite;
+}
 .wheel-wrapper {
   display: flex;
   flex-direction: column;
