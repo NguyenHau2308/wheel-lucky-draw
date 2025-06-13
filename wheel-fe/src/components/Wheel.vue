@@ -123,11 +123,39 @@ const onStop = async () => {
     Math.round((center - offset.value) / itemH.value) % codes.value.length;
   const winner =
     codes.value[(idxFinal + codes.value.length) % codes.value.length];
-  const end = Date.now() + 1000;
-  (function frame() {
-    confetti({ origin: { y: 0.6 } });
-    if (Date.now() < end) requestAnimationFrame(frame);
-  })();
+
+  const duration = 30000;
+  const end = Date.now() + duration;
+
+  const burst = () => {
+    for (let i = 0; i < 5; i++) {
+      confetti({
+        particleCount: 30,
+        angle: 60 + i * 15,
+        spread: 55,
+        origin: { x: 0.5, y: 0.5 },
+        gravity: 0.6,
+        ticks: 200,
+        scalar: 1.1,
+      });
+    }
+  };
+
+  const rain = () => {
+    confetti({
+      particleCount: 2,
+      angle: 90,
+      spread: 70,
+      origin: { x: Math.random(), y: 0 },
+      gravity: 1,
+      ticks: 300,
+      scalar: 0.8,
+    });
+    if (Date.now() < end) requestAnimationFrame(rain);
+  };
+
+  burst();
+  rain();
 
   await axios.post("http://localhost:4000/draw-result", {
     winner,
