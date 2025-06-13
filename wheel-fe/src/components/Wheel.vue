@@ -34,6 +34,7 @@ import { ref, computed, onMounted, nextTick } from "vue";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { Howl } from "howler";
+import dayjs from "dayjs";
 
 const tickSound = new Howl({ src: ["/sounds/tick.mp3"], volume: 0.5 });
 const winSound = new Howl({ src: ["/sounds/win.mp3"], volume: 1 });
@@ -107,7 +108,7 @@ const spin = () => {
   requestAnimationFrame(trackTick);
 };
 
-const fmt = (d) => d.toISOString().slice(0, 19).replace("T", " ");
+// const fmt = (d) => d.toISOString().slice(0, 19).replace("T", " ");
 
 const onStop = async () => {
   if (state.value !== "running") return;
@@ -159,7 +160,7 @@ const onStop = async () => {
 
   await axios.post("http://localhost:4000/draw-result", {
     winner,
-    draw_time: fmt(new Date()),
+    draw_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
   });
 
   setTimeout(() => {
