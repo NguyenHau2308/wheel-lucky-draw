@@ -1,82 +1,97 @@
 <template>
-  <div class="wheel-container">
-    <div
-      class="wheel"
-      :style="{ transform: `rotate(${angle}deg)` }"
-    >
-      <div
-        v-for="(code, idx) in codes"
-        :key="code"
-        class="slice"
-        :style="sliceStyle(idx)"
-      >
-        {{ code }}
-      </div>
+  <div class="wrap">
+    <div class="wheel-box">
+      <LuckyWheel
+        ref="wh"
+        :width="600"
+        :height="600"
+        :blocks="wheelBlocks"
+        :prizes="prizeList"
+        :buttons="buttons"
+        @end="onEnd"
+      />
+      <button
+        class="spin-btn"
+        :disabled="busy"
+        @click="draw"
+      >SPIN</button>
     </div>
-    <div class="indicator"></div>
+    <div v-if="winner" class="winner">{{ winner }}</div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import axios from "axios";
+import { ref, onMounted, nextTick } from 'vue'
+import { LuckyWheel } from '@lucky-canvas/vue'
+import axios from 'axios'
 
-const codes = ref([]);
-const angle = ref(0);
+const API = 'http://localhost:4000'
+const wh = ref(null)
+const prizeList = ref([])
+const busy = ref(false)
+const winner = ref('')
 
-const fetchCodes = async () => {
-  const { data } = await axios.get(
-    "http://localhost:4000/participants"
-  );
-  codes.value = data;
-};
+const wheelBlocks = [
+  { padding: '20px', background: '#fff', borderRadius: 300 }
+]
+const buttons = [{
+  radius: '60px',
+  background: '#ff9800',
+  pointer: true,
+  fonts: [{ text: 'SPIN', fontColor: '#fff', fontSize: 20 }]
+}]
+
+async function loadCodes () {
+  const { data } = await axios.get(`${API}/participants`)
+  if (data.length !== prizeList.value.length) {
+    prizeList.value = data.map(code => ({
+      background: `hsl(${Math.random()*360},70%,50%)`,
+      fonts: [{ text: code, top: 20 }]
+    }))
+  }
+}
 
 onMounted(async () => {
-  await fetchCodes();
-  setInterval(fetchCodes, 30000); // 30 s
-  // idle spin
-  setInterval(() => (angle.value += 0.3), 16);
-});
+  await loadCodes()
+  setInterval(loadCodes, 30000)
+  // Quay chậm khi vào trang
+  nextTick(() => wh.value.play(2))
+})
 
-const sliceStyle = (idx) => {
-  const deg = (360 / codes.value.length) * idx;
-  return {
-    transform: `rotate(${deg}deg) translateY(-50%)`,
-  };
-};
+function draw () {
+  if (busy.value) return
+  busy.value = true
+  // Quay nhanh
+  wh.value.play(18)
+  const idx = Math.floor(Math.random() * prizeList.value.length)
+  wh.value.stop(idx)
+}
+
+async function onEnd (prize) {
+  winner.value = prize.fonts[0].text
+  await axios.post(`${API}/draw-result`, {
+    winner: winner.value,
+    draw_time: new Date().toISOString().slice(0,19).replace('T',' ')
+  })
+  setTimeout(() => {
+    winner.value = ''
+    busy.value = false
+    wh.value.play(2)    // lại quay chậm
+  }, 30000)
+}
 </script>
 
 <style scoped>
-.wheel-container {
-  position: relative;
-  width: 600px;
-  height: 600px;
-  margin: auto;
+.wrap{display:flex;flex-direction:column;align-items:center;gap:20px}
+.wheel-box{position:relative}
+.spin-btn{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  padding:30px 60px;font-size:32px;font-weight:700;border-radius:50px;
+  background:#ff9800;color:#fff;border:none;cursor:pointer;z-index:2;opacity:0.96
 }
-.wheel {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 8px solid #ccc;
-  transition: transform 5s cubic-bezier(0.2, 0, 0.1, 1);
-}
-.slice {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform-origin: 0 0;
-  font-size: 10px;
-}
-.indicator {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-bottom: 25px solid red;
+.spin-btn:disabled{opacity:0.5;cursor:not-allowed}
+.winner{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font-size:48px; font-weight:700; color:#ffd700; text-shadow:0 0 10px #000;
 }
 </style>
