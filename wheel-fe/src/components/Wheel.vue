@@ -1,6 +1,8 @@
 <template>
   <div class="wheel-wrapper">
     <div class="reel-box">
+      <div class="side-bar left"></div>
+      <div class="side-bar right"></div>
       <ul
         ref="reel"
         class="reel"
@@ -11,7 +13,10 @@
           v-for="(c, i) in repeated"
           :key="`${c}-${i}`"
           class="item"
-          :style="{ background: colors[i % colors.length] }"
+          :style="{
+            background: colors[i % colors.length],
+            color: getContrastColor(colors[i % colors.length]),
+          }"
         >
           {{ c }}
         </li>
@@ -44,7 +49,25 @@ const offset = ref(0);
 const state = ref("idle");
 const itemH = ref(0);
 const reel = ref(null);
-const colors = ["#ffeb3b", "#00e5ff", "#ff4081", "#76ff03", "#ff5722"];
+const colors = [
+  "#316B2A",
+  "#4F8433",
+  "#6EA13D",
+  "#8DAF47",
+  "#ACC950",
+  "#CBD75A",
+  "#E8E361",
+  "#FFF96B",
+];
+function getContrastColor(hex) {
+  const [r, g, b] = hex
+    .substring(1)
+    .match(/.{2}/g)
+    .map((v) => parseInt(v, 16) / 255);
+  const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return L > 0.6 ? "#333333" : "#ffffff";
+}
+
 const LOOPS = 6;
 let boxH = 0;
 let windowH = 0;
@@ -243,6 +266,7 @@ onMounted(async () => {
   border: 3px solid #ff0000;
   box-sizing: border-box;
   pointer-events: none;
+  z-index: 10;
 }
 
 .arrow {
@@ -283,5 +307,23 @@ onMounted(async () => {
 }
 .spin-btn:not(:disabled):hover {
   background: #444;
+}
+.side-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: rgba(1, 41, 16, 0.4);
+  z-index: 5;
+}
+.side-bar.left {
+  left: 0;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+.side-bar.right {
+  right: 0;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
 }
 </style>

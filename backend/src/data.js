@@ -1,4 +1,4 @@
-let counter = 5;
+let counter = 600;
 export let codes = Array.from({ length: counter }, (_, i) =>
   "A" + String(i + 1).padStart(4, "0")
 );
