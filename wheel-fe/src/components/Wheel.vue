@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, nextTick, defineEmits } from "vue";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { Howl } from "howler";
@@ -43,6 +43,8 @@ import dayjs from "dayjs";
 
 const tickSound = new Howl({ src: ["/sounds/tick.mp3"], volume: 0.5 });
 const winSound = new Howl({ src: ["/sounds/win.mp3"], volume: 1 });
+
+const emit = defineEmits(["winner"]);
 
 const codes = ref([]);
 const offset = ref(0);
@@ -131,7 +133,6 @@ const spin = () => {
   requestAnimationFrame(trackTick);
 };
 
-
 const onStop = async () => {
   if (state.value !== "running") return;
   state.value = "winner";
@@ -184,7 +185,7 @@ const onStop = async () => {
     winner,
     draw_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
   });
-
+  emit("winner", winner);
   setTimeout(() => {
     reel.value.style.transition = "";
     state.value = "idle";

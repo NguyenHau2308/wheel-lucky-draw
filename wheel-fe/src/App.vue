@@ -2,12 +2,16 @@
   <div class="page">
     <header class="topbar">
       <h1 class="logo">Wheel Lucky Draw</h1>
+      <transition name="fade">
+        <div v-if="winner" class="notify">
+          🎉 Người trúng thưởng: <strong>{{ winner }}</strong>
+        </div>
+      </transition>
     </header>
 
     <section class="banner">
       <div class="workspace">
-        <Wheel class="wheel-box" />
-
+        <Wheel class="wheel-box" @winner="onWinner" />
         <aside class="panel">
           <h2 class="panel-title">Danh sách ({{ codes.length }})</h2>
 
@@ -36,6 +40,14 @@ import Wheel from "./components/Wheel.vue";
 
 const codes = ref(["A0001", "A0002", "A0003"]);
 const newCode = ref("");
+const winner = ref("");
+
+function onWinner(code) {
+  winner.value = code;
+  setTimeout(() => {
+    winner.value = "";
+  }, 30000);
+}
 
 function addCode() {
   const s = newCode.value.trim();
@@ -177,5 +189,18 @@ body {
 .footer {
   height: 40px;
   background: #ffffff;
+}
+.notify {
+  margin-left: 24px;
+  font-size: 16px;
+  color: #0a0;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.4s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
