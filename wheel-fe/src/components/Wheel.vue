@@ -108,7 +108,6 @@ const spin = () => {
   requestAnimationFrame(trackTick);
 };
 
-// const fmt = (d) => d.toISOString().slice(0, 19).replace("T", " ");
 
 const onStop = async () => {
   if (state.value !== "running") return;
@@ -169,6 +168,14 @@ const onStop = async () => {
     startIdle();
   }, 30_000);
 };
+const checkAndUpdateCodes = async () => {
+  const res = await axios.get("http://localhost:4000/participants");
+  const newCodes = res.data;
+  if (newCodes.length !== codes.value.length) {
+    console.log("Updated codes from", codes.value.length, "→", newCodes.length);
+    codes.value = newCodes;
+  }
+};
 
 onMounted(async () => {
   await fetchCodes();
@@ -178,7 +185,7 @@ onMounted(async () => {
     boxH = document.querySelector(".reel-box").clientHeight;
     startIdle();
   });
-  setInterval(fetchCodes, 30_000);
+  setInterval(checkAndUpdateCodes, 5_000);
 });
 </script>
 
