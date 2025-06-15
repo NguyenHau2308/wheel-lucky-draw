@@ -209,7 +209,7 @@ onMounted(async () => {
     boxH = document.querySelector(".reel-box").clientHeight;
     startIdle();
   });
-  setInterval(checkAndUpdateCodes, 5_000);
+  setInterval(checkAndUpdateCodes, 30_000);
 });
 </script>
 

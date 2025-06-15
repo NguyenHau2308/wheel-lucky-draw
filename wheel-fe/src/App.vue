@@ -35,29 +35,42 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import axios from "axios";
 import Wheel from "./components/Wheel.vue";
 
-const codes = ref(["A0001", "A0002", "A0003"]);
+const codes = ref([]);
 const newCode = ref("");
 const winner = ref("");
 
-function onWinner(code) {
-  winner.value = code;
-  setTimeout(() => {
-    winner.value = "";
-  }, 30000);
+const API = "http://localhost:4000/participants";
+const fetchCodes = async () => {
+  const { data } = await axios.get(API);
+  codes.value = data;
+};
+
+async function addCode() {
+  const code = newCode.value.trim();
+  if (!code) return;
+  await axios.post(API, { code });
+  newCode.value = "";
+  fetchCodes();
 }
 
-function addCode() {
-  const s = newCode.value.trim();
-  if (!s) return;
-  if (!codes.value.includes(s)) codes.value.push(s);
-  newCode.value = "";
+async function remove(code) {
+  await axios.delete(`${API}/${code}`);
+  fetchCodes();
 }
-function remove(c) {
-  codes.value = codes.value.filter((x) => x !== c);
+
+function onWinner(code) {
+  winner.value = code;
+  setTimeout(() => (winner.value = ""), 30000);
 }
+
+onMounted(() => {
+  fetchCodes();
+  setInterval(fetchCodes, 30000);
+});
 </script>
 
 <style scoped>
