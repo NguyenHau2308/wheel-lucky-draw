@@ -36,6 +36,8 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, defineEmits } from "vue";
+// import { ref, computed, onMounted, nextTick, defineEmits } from "vue";
+import { io } from "socket.io-client";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { Howl } from "howler";
@@ -43,6 +45,7 @@ import dayjs from "dayjs";
 
 const tickSound = new Howl({ src: ["/sounds/tick.mp3"], volume: 0.5 });
 const winSound = new Howl({ src: ["/sounds/win.mp3"], volume: 1 });
+const ws = io("http://localhost:5000");
 
 const emit = defineEmits(["winner"]);
 
@@ -186,6 +189,7 @@ const onStop = async () => {
     draw_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
   });
   emit("winner", winner);
+  ws.emit("spin-done", winner);
   setTimeout(() => {
     reel.value.style.transition = "";
     state.value = "idle";
@@ -208,6 +212,7 @@ onMounted(async () => {
     windowH = document.querySelector(".window").offsetHeight;
     boxH = document.querySelector(".reel-box").clientHeight;
     startIdle();
+    ws.on("start-spin", () => spin());
   });
   setInterval(checkAndUpdateCodes, 30_000);
 });

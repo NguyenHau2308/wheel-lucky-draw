@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Remote Spin</title></head>
+<body style="display:flex;flex-direction:column;align-items:center;gap:20px;margin-top:60px;font-family:sans-serif">
+  <button id="btn" style="padding:16px 40px;font-size:24px">QUAY!</button>
+  <ul id="log"></ul>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const ws = io("http://localhost:5000");
+    btn.onclick = () => ws.emit("start-spin");
+
+    ws.on("spin-done", w => {
+      const li=document.createElement("li");
+      li.textContent = "Winner: " + w;
+      log.prepend(li);
+      alert("Người trúng: " + w);
+    });
+  </script>
+</body>
+</html>
